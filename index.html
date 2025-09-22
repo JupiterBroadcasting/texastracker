@@ -72,23 +72,23 @@
       }
 
       .control-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        align-items: center;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
         margin-bottom: 20px;
       }
 
       .control-group {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
       }
 
-      label {
+      .control-group label {
         font-weight: 600;
         color: #495057;
         font-size: 13px;
+        min-height: 16px;
       }
 
       button {
@@ -101,6 +101,7 @@
         font-size: 14px;
         font-weight: 500;
         transition: all 0.2s;
+        min-height: 40px;
       }
 
       button:hover {
@@ -121,18 +122,24 @@
       }
 
       .person-btn {
+        flex: 1;
         padding: 8px 16px;
         border-radius: 4px;
         border: 2px solid;
         cursor: pointer;
         font-weight: 500;
         transition: all 0.2s;
+        text-align: center;
+        background: white;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .person1-btn {
         border-color: #e53e3e;
         color: #e53e3e;
-        background: white;
       }
 
       .person1-btn.active {
@@ -143,7 +150,6 @@
       .person2-btn {
         border-color: #3182ce;
         color: #3182ce;
-        background: white;
       }
 
       .person2-btn.active {
@@ -331,9 +337,32 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
-      .time-range {
+      .time-range,
+      .lookback-select {
         width: 100%;
         margin: 10px 0;
+      }
+
+      .lookback-select {
+        padding: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        font-size: 14px;
+      }
+
+      .lookback-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .lookback-controls label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 13px;
+        white-space: nowrap;
       }
     </style>
   </head>
@@ -362,6 +391,17 @@
         </div>
 
         <div class="time-controls">
+          <div class="lookback-controls">
+            <label>Data Lookback:</label>
+            <select id="lookbackSelect" class="lookback-select">
+              <option value="all">All available data</option>
+              <option value="24">Last 24 hours</option>
+              <option value="48">Last 48 hours</option>
+              <option value="168">Last 7 days</option>
+              <option value="720">Last 30 days</option>
+            </select>
+          </div>
+
           <label>Time Range Filter:</label>
           <input
             type="range"
@@ -386,6 +426,13 @@
         </div>
 
         <div class="control-row">
+          <div class="control-group">
+            <label>Animation</label>
+            <button id="animateBtn" onclick="toggleAnimation()">
+              Play Animation
+            </button>
+          </div>
+
           <div class="control-group">
             <label>Data Controls</label>
             <button id="refreshBtn" onclick="manualRefresh()">
@@ -419,20 +466,23 @@
           </div>
 
           <div class="control-group">
-            <label>Path Controls</label>
+            <label>Path Display</label>
             <button onclick="togglePaths()">Toggle Paths</button>
+          </div>
+
+          <div class="control-group">
+            <label>Point Display</label>
+            <button onclick="togglePoints()">Toggle Points</button>
+          </div>
+
+          <div class="control-group">
+            <label>Distance Line</label>
+            <button onclick="toggleDistance()">Toggle Distance</button>
           </div>
 
           <div class="control-group">
             <label>View Controls</label>
             <button onclick="fitToBounds()">Fit to View</button>
-          </div>
-
-          <div class="control-group">
-            <label>Animation</label>
-            <button id="animateBtn" onclick="toggleAnimation()">
-              Play Animation
-            </button>
           </div>
         </div>
 
@@ -445,9 +495,7 @@
             </div>
             <div class="stat-item">
               <span class="label">Geohash</span>
-              <span class="value placeholder" id="person1Geohash"
-                >coming soon...</span
-              >
+              <span class="value" id="person1Geohash">--</span>
             </div>
             <div class="stat-item">
               <span class="label">Total Path Distance</span>
@@ -466,9 +514,7 @@
             </div>
             <div class="stat-item">
               <span class="label">Geohash</span>
-              <span class="value placeholder" id="person2Geohash"
-                >coming soon...</span
-              >
+              <span class="value" id="person2Geohash">--</span>
             </div>
             <div class="stat-item">
               <span class="label">Total Path Distance</span>
@@ -495,8 +541,8 @@
         <div class="status-row">
           <div id="statusIndicator" class="status-info">Initializing...</div>
           <div class="config-info">
-            Refresh: ${Math.floor(CONFIG.refreshInterval/1000)}s | Max Points:
-            ${CONFIG.maxPoints} | Auto: ${CONFIG.autoRefresh ? 'ON' : 'OFF'}
+            Refresh: ${Math.floor(CONFIG.refreshInterval/1000)}s | Auto:
+            ${CONFIG.autoRefresh ? 'ON' : 'OFF'}
           </div>
         </div>
       </div>
@@ -504,11 +550,46 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
+      /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
+      /* Geohash encoding/decoding and associated functions   (c) Chris Veness 2014-2019 / MIT Licence  */
+      /* Minified with Closure Compiler Simple Optimization
+      /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
+      /**
+       * Encode latitude/longitude to geohash
+       * @param {number} d - Latitude
+       * @param {number} e - Longitude
+       * @param {number} c - Precision (number of characters)
+       * @returns {string} Geohash
+       */
+      window.geohash = function (d, e, c) {
+        d = Number(d);
+        e = Number(e);
+        c = Number(void 0 === c ? 12 : c);
+        if (isNaN(d) || isNaN(e) || isNaN(c)) throw Error("Invalid geohash");
+        for (
+          var a = 0, h = 0, f = !0, g = "", k = -90, l = 90, m = -180, n = 180;
+          g.length < c;
+
+        ) {
+          if (f) {
+            var b = (m + n) / 2;
+            e >= b ? ((a = (a << 1) + 1), (m = b)) : ((a <<= 1), (n = b));
+          } else
+            (b = (k + l) / 2),
+              d >= b ? ((a = (a << 1) + 1), (k = b)) : ((a <<= 1), (l = b));
+          f = !f;
+          5 == ++h &&
+            ((g += "0123456789bcdefghjkmnpqrstuvwxyz".charAt(a)), (a = h = 0));
+        }
+        return g;
+      };
+    </script>
+    <script>
       // Configuration - can be overridden via URL params or config file
       const CONFIG = {
         refreshInterval: parseInt(
           new URLSearchParams(window.location.search).get("refresh") || "30000",
-        ), // 5 minutes default
+        ), // 30 seconds default
         person1DataUrl:
           new URLSearchParams(window.location.search).get("person1") ||
           "wes.json",
@@ -517,9 +598,6 @@
           "brent.json",
         autoRefresh:
           new URLSearchParams(window.location.search).get("auto") !== "false",
-        maxPoints: parseInt(
-          new URLSearchParams(window.location.search).get("maxPoints") || "100",
-        ),
       };
 
       // Austin, TX coordinates from Google Maps URL
@@ -530,6 +608,7 @@
       let person1Data = [];
       let person2Data = [];
       let allData = [];
+      let filteredData = []; // Store data after lookback filtering
       let lastUpdate = null;
       let refreshTimer = null;
 
@@ -579,8 +658,20 @@
             };
           })
           .filter((p) => p !== null)
-          .sort((a, b) => a.timestamp - b.timestamp)
-          .slice(-CONFIG.maxPoints); // Keep only most recent points
+          .sort((a, b) => a.timestamp - b.timestamp);
+      }
+
+      // Apply lookback filter to data
+      function applyLookbackFilter(data) {
+        const lookbackValue = document.getElementById("lookbackSelect").value;
+        if (lookbackValue === "all") {
+          return data;
+        }
+
+        const hoursBack = parseInt(lookbackValue);
+        const cutoffTime = Date.now() / 1000 - hoursBack * 3600;
+
+        return data.filter((point) => point.timestamp >= cutoffTime);
       }
 
       // Load all data with complete refresh
@@ -598,6 +689,9 @@
           allData = [...person1Data, ...person2Data].sort(
             (a, b) => a.timestamp - b.timestamp,
           );
+
+          // Apply lookback filter
+          applyDataFilters();
 
           lastUpdate = new Date();
           updateStatus(
@@ -624,6 +718,17 @@
           updateStatus(`Error loading data: ${error.message}`, "error");
           console.error("Data loading failed:", error);
         }
+      }
+
+      // Apply all data filters (lookback + time slider)
+      function applyDataFilters() {
+        // First apply lookback filter
+        const lookbackFiltered1 = applyLookbackFilter(person1Data);
+        const lookbackFiltered2 = applyLookbackFilter(person2Data);
+
+        filteredData = [...lookbackFiltered1, ...lookbackFiltered2].sort(
+          (a, b) => a.timestamp - b.timestamp,
+        );
       }
 
       // Update status indicator
@@ -701,6 +806,8 @@
       let showPerson1 = true;
       let showPerson2 = true;
       let showPaths = true;
+      let showPoints = false;
+      let showDistance = true;
       let currentTimeFilter = 1.0;
 
       // Add legend
@@ -759,24 +866,39 @@
       }
 
       // Get filtered data based on time slider
-      function getFilteredData() {
-        const maxTime =
-          allData.length > 0 ? Math.max(...allData.map((p) => p.timestamp)) : 0;
-        const minTime =
-          allData.length > 0 ? Math.min(...allData.map((p) => p.timestamp)) : 0;
+      function getTimeFilteredData() {
+        if (filteredData.length === 0) {
+          return { person1: [], person2: [] };
+        }
+
+        const maxTime = Math.max(...filteredData.map((p) => p.timestamp));
+        const minTime = Math.min(...filteredData.map((p) => p.timestamp));
         const cutoffTime = minTime + (maxTime - minTime) * currentTimeFilter;
 
+        const filtered1 = filteredData.filter(
+          (p) => p.personId === 1 && p.timestamp <= cutoffTime,
+        );
+        const filtered2 = filteredData.filter(
+          (p) => p.personId === 2 && p.timestamp <= cutoffTime,
+        );
+
         return {
-          person1: person1Data.filter((p) => p.timestamp <= cutoffTime),
-          person2: person2Data.filter((p) => p.timestamp <= cutoffTime),
+          person1: filtered1,
+          person2: filtered2,
         };
       }
 
-      // Create marker with custom styling
+      // Create marker with custom styling - fixed opacity issue
       function createMarker(point, isLatest = false) {
         const size = isLatest ? 16 : 10;
         const color = point.personId === 1 ? colors.person1 : colors.person2;
-        const opacity = Math.max(0.3, 1 - point.accuracy / 50); // Fade based on accuracy
+
+        // Fixed opacity calculation - ensure consistent visibility
+        const baseOpacity = isLatest ? 1.0 : 0.8;
+        const accuracyOpacity = point.accuracy
+          ? Math.max(0.5, 1 - point.accuracy / 100)
+          : 1.0;
+        const finalOpacity = Math.min(baseOpacity, accuracyOpacity);
 
         const icon = L.divIcon({
           html: `<div style="
@@ -786,7 +908,7 @@
                     border-radius: 50%; 
                     border: 2px solid white; 
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    opacity: ${opacity};
+                    opacity: ${finalOpacity};
                     ${isLatest ? "animation: pulse 2s infinite;" : ""}
                 "></div>
                 <style>
@@ -806,9 +928,9 @@
                 <div style="font-size: 12px;">
                     <b>Person ${point.personId}</b><br>
                     <b>Time:</b> ${point.time.toLocaleString()}<br>
-                    <b>Battery:</b> ${point.battery}%<br>
-                    <b>Altitude:</b> ${point.altitude}m<br>
-                    <b>Accuracy:</b> ±${point.accuracy}m<br>
+                    <b>Battery:</b> ${point.battery || "N/A"}%<br>
+                    <b>Altitude:</b> ${point.altitude || "N/A"}m<br>
+                    <b>Accuracy:</b> ±${point.accuracy || "N/A"}m<br>
                     <b>Coords:</b> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}
                 </div>
             `);
@@ -818,7 +940,7 @@
 
       // Update map display
       function updateMap() {
-        const filtered = getFilteredData();
+        const filtered = getTimeFilteredData();
 
         // Clear existing markers
         person1Markers.clearLayers();
@@ -829,7 +951,11 @@
           filtered.person1.forEach((point, index) => {
             const isLatest = index === filtered.person1.length - 1;
             const marker = createMarker(point, isLatest);
-            // person1Markers.addLayer(marker); // Points removed as requested
+
+            // Show all points if showPoints is true, or just the latest point
+            if (showPoints || isLatest) {
+              person1Markers.addLayer(marker);
+            }
           });
         }
 
@@ -838,7 +964,11 @@
           filtered.person2.forEach((point, index) => {
             const isLatest = index === filtered.person2.length - 1;
             const marker = createMarker(point, isLatest);
-            // person2Markers.addLayer(marker); // Points removed as requested
+
+            // Show all points if showPoints is true, or just the latest point
+            if (showPoints || isLatest) {
+              person2Markers.addLayer(marker);
+            }
           });
         }
 
@@ -883,10 +1013,16 @@
         // Remove existing distance line
         if (distanceLine) map.removeLayer(distanceLine);
 
+        // Clear existing distance markers
+        if (window.distanceMarkers) {
+          window.distanceMarkers.forEach((marker) => map.removeLayer(marker));
+          window.distanceMarkers = [];
+        }
+
         const p1Latest = filtered.person1[filtered.person1.length - 1];
         const p2Latest = filtered.person2[filtered.person2.length - 1];
 
-        if (p1Latest && p2Latest) {
+        if (p1Latest && p2Latest && showDistance) {
           // Draw distance line
           distanceLine = L.polyline(
             [
@@ -932,7 +1068,6 @@
 
           // Store for cleanup
           if (!window.distanceMarkers) window.distanceMarkers = [];
-          window.distanceMarkers.forEach((marker) => map.removeLayer(marker));
           window.distanceMarkers = [midpointMarker];
 
           document.getElementById("distanceValue").textContent = distanceText;
@@ -996,7 +1131,7 @@
         document.getElementById("maxDistance").textContent =
           formatDistance(maxDist);
 
-        // Calculate distance to Austin for latest point of each person
+        // Calculate distance to Austin and geohash for latest point of each person
         const p1Latest = filtered.person1[filtered.person1.length - 1];
         const p2Latest = filtered.person2[filtered.person2.length - 1];
 
@@ -1011,9 +1146,14 @@
             formatDistance(distToAustin);
           document.getElementById("person1LastUpdate").textContent =
             p1Latest.time.toLocaleString();
+
+          // Calculate geohash at province level (precision 4)
+          const geohash = window.geohash(p1Latest.lat, p1Latest.lon, 4);
+          document.getElementById("person1Geohash").textContent = geohash;
         } else {
           document.getElementById("person1AustinDistance").textContent = "--";
           document.getElementById("person1LastUpdate").textContent = "--";
+          document.getElementById("person1Geohash").textContent = "--";
         }
 
         if (p2Latest) {
@@ -1027,9 +1167,14 @@
             formatDistance(distToAustin);
           document.getElementById("person2LastUpdate").textContent =
             p2Latest.time.toLocaleString();
+
+          // Calculate geohash at province level (precision 4)
+          const geohash = window.geohash(p2Latest.lat, p2Latest.lon, 4);
+          document.getElementById("person2Geohash").textContent = geohash;
         } else {
           document.getElementById("person2AustinDistance").textContent = "--";
           document.getElementById("person2LastUpdate").textContent = "--";
+          document.getElementById("person2Geohash").textContent = "--";
         }
       }
 
@@ -1064,11 +1209,29 @@
         updateMap();
       }
 
+      // Toggle points
+      function togglePoints() {
+        showPoints = !showPoints;
+        updateMap();
+      }
+
+      // Toggle distance line and markers
+      function toggleDistance() {
+        showDistance = !showDistance;
+        updateMap();
+      }
+
       // Fit to bounds
       function fitToBounds() {
         const allPoints = [];
-        if (showPerson1) allPoints.push(...person1Data);
-        if (showPerson2) allPoints.push(...person2Data);
+        if (showPerson1) {
+          const p1Data = filteredData.filter((p) => p.personId === 1);
+          allPoints.push(...p1Data);
+        }
+        if (showPerson2) {
+          const p2Data = filteredData.filter((p) => p.personId === 2);
+          allPoints.push(...p2Data);
+        }
 
         if (allPoints.length > 0) {
           const group = L.featureGroup(
@@ -1133,15 +1296,27 @@
           updateMap();
         });
 
+      // Lookback selector handler
+      document
+        .getElementById("lookbackSelect")
+        .addEventListener("change", function (e) {
+          applyDataFilters();
+          currentTimeFilter = 1.0;
+          document.getElementById("timeSlider").value = 100;
+          initializeTimeDisplay();
+          updateMap();
+          setTimeout(fitToBounds, 100);
+        });
+
       // Initialize time display
       function initializeTimeDisplay() {
-        if (allData.length === 0) {
+        if (filteredData.length === 0) {
           document.getElementById("startTime").textContent = "--";
           document.getElementById("endTime").textContent = "--";
           return;
         }
-        const minTime = Math.min(...allData.map((p) => p.timestamp));
-        const maxTime = Math.max(...allData.map((p) => p.timestamp));
+        const minTime = Math.min(...filteredData.map((p) => p.timestamp));
+        const maxTime = Math.max(...filteredData.map((p) => p.timestamp));
 
         document.getElementById("startTime").textContent = new Date(
           minTime * 1000,
@@ -1181,7 +1356,6 @@
           // Update config display
           document.querySelector(".config-info").innerHTML = `
                     Refresh: ${Math.floor(CONFIG.refreshInterval / 1000)}s | 
-                    Max Points: ${CONFIG.maxPoints} | 
                     Auto: ${CONFIG.autoRefresh ? "ON" : "OFF"}
                 `;
         } catch (error) {

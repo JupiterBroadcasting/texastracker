@@ -1,0 +1,20 @@
+# N.B. This is just the portion needed to run the collector.
+# See https://github.com/Freika/dawarich/blob/787dd9cde8781601a6bcb1898ef4cdf604062a7c/docker/docker-compose.yml for rest of upstream docker-compose yaml
+networks:
+  dawarich:
+services:
+  # ...
+  collector:
+    build: ./collector
+    restart: unless-stopped
+    volumes:
+      - dawarich_collector:/app
+    working_dir: /app
+    networks:
+      - dawarich
+    env_file:
+      - ./.env
+
+volumes:
+  dawarich_collector:
+  # ...

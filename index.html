@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 25px;
+        }
+
+        .links-section {
+            padding: 15px 25px;
+            background: #f0f2f5;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .links-section a {
+            margin: 0 15px;
+            color: #764ba2;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .links-section a:hover {
+            text-decoration: underline;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+        
+        #map {
+            height: 650px;
+            width: 100%;
+        }
+        
+        .controls {
+            padding: 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 13px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .person-toggle {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .person-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 2px solid;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .person1-btn {
+            border-color: #e53e3e;
+            color: #e53e3e;
+            background: white;
+        }
+        
+        .person1-btn.active {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .person2-btn {
+            border-color: #3182ce;
+            color: #3182ce;
+            background: white;
+        }
+        
+        .person2-btn.active {
+            background: #3182ce;
+            color: white;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .distance-box {
+            border-left-color: #38a169;
+        }
+        
+        .legend {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        .legend-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+        
+        
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .status-info, .status-loading, .status-success, .status-error {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .status-info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .status-loading {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .status-success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .config-info {
+            font-size: 11px;
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .time-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .time-range {
+            width: 100%;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤠 Texas Tracker</h1>
+            <div class="info">Real-time distance tracking and movement visualization</div>
+        </div>
+
+        <div class="links-section">
+            <a href="https://bitmap.lat/" target="_blank">Find Your GeoHash with Bitmap</a>
+            <a href="https://bitchat.free/" target="_blank">Install bitchat</a>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div class="controls">
+            <div class="stat-box distance-box" id="currentDistance">
+                <div class="stat-value" id="distanceValue">--</div>
+                <div class="stat-label">Distance Between People (mi)</div>
+            </div>
+            
+            <div class="time-controls">
+                <label>Time Range Filter:</label>
+                <input type="range" id="timeSlider" class="time-range" min="0" max="100" value="100">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
+                    <span id="startTime">--</span>
+                    <span id="endTime">--</span>
+                </div>
+            </div>
+            
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Data Controls</label>
+                    <button id="refreshBtn" onclick="manualRefresh()">Refresh Data</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Auto Refresh</label>
+                    <button id="autoRefreshBtn" onclick="toggleAutoRefresh()">
+                        <span id="autoRefreshText">Stop Auto Refresh</span>
+                    </button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Show/Hide People</label>
+                    <div class="person-toggle">
+                        <div class="person-btn person1-btn active" onclick="togglePerson(1)">
+                            👤 Person 1
+                        </div>
+                        <div class="person-btn person2-btn active" onclick="togglePerson(2)">
+                            👤 Person 2
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Path Controls</label>
+                    <button onclick="togglePaths()">Toggle Paths</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>View Controls</label>
+                    <button onclick="fitToBounds()">Fit to View</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Animation</label>
+                    <button id="animateBtn" onclick="toggleAnimation()">Play Animation</button>
+                </div>
+            </div>
+            
+            <div class="status-row">
+                <div id="statusIndicator" class="status-info">Initializing...</div>
+                <div class="config-info">
+                    Refresh: ${Math.floor(CONFIG.refreshInterval/1000)}s | 
+                    Max Points: ${CONFIG.maxPoints} | 
+                    Auto: ${CONFIG.autoRefresh ? 'ON' : 'OFF'}
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="person1Distance">--</div>
+                    <div class="stat-label">Person 1 Path Distance (mi)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="person2Distance">--</div>
+                    <div class="stat-label">Person 2 Path Distance (mi)</div>
+                </div>
+                <div class="stat-box distance-box">
+                    <div class="stat-value" id="minDistance">--</div>
+                    <div class="stat-label">Min Distance (mi)</div>
+                </div>
+                <div class="stat-box distance-box">
+                    <div class="stat-value" id="maxDistance">--</div>
+                    <div class="stat-label">Max Distance (mi)</div>
+                </div>
+                <div class="stat-box distance-box">
+                    <div class="stat-value" id="person1AustinDistance">--</div>
+                    <div class="stat-label">P1 Dist to Austin (mi)</div>
+                </div>
+                <div class="stat-box distance-box">
+                    <div class="stat-value" id="person2AustinDistance">--</div>
+                    <div class="stat-label">P2 Dist to Austin (mi)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Configuration - can be overridden via URL params or config file
+        const CONFIG = {
+            refreshInterval: parseInt(new URLSearchParams(window.location.search).get('refresh') || '30000'), // 5 minutes default
+            person1DataUrl: new URLSearchParams(window.location.search).get('person1') || 'wes.json',
+            person2DataUrl: new URLSearchParams(window.location.search).get('person2') || 'brent.json',
+            autoRefresh: new URLSearchParams(window.location.search).get('auto') !== 'false',
+            maxPoints: parseInt(new URLSearchParams(window.location.search).get('maxPoints') || '100')
+        };
+        
+        // Austin, TX coordinates from Google Maps URL
+        const AUSTIN_LAT = 30.3872646;
+        const AUSTIN_LON = -97.7263373;
+
+        // Global data storage
+        let person1Data = [];
+        let person2Data = [];
+        let allData = [];
+        let lastUpdate = null;
+        let refreshTimer = null;
+        
+        // Data loading and processing
+        async function loadPersonData(url) {
+            try {
+                const response = await fetch(url + '?t=' + Date.now()); // Cache busting
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`Failed to load data from ${url}:`, error);
+                throw error;
+            }
+        }
+        
+        // Parse location data from Dawarich format
+        function parseLocationData(data, personId) {
+            if (!Array.isArray(data)) {
+                console.error('Invalid data format - expected array');
+                return [];
+            }
+            
+            return data.map(point => {
+                // Handle both raw Dawarich format and pre-processed format
+                const lonlatMatch = point.lonlat ? point.lonlat.match(/POINT \(([^ ]+) ([^ ]+)\)/) : null;
+                
+                if (!lonlatMatch && (!point.lat || !point.lon)) {
+                    console.warn('Invalid point data:', point);
+                    return null;
+                }
+                
+                return {
+                    id: point.id,
+                    lat: lonlatMatch ? parseFloat(lonlatMatch[2]) : point.lat,
+                    lon: lonlatMatch ? parseFloat(lonlatMatch[1]) : point.lon,
+                    timestamp: point.timestamp,
+                    battery: point.battery,
+                    altitude: point.altitude,
+                    accuracy: point.accuracy,
+                    personId: personId,
+                    time: new Date(point.timestamp * 1000)
+                };
+            }).filter(p => p !== null)
+              .sort((a, b) => a.timestamp - b.timestamp)
+              .slice(-CONFIG.maxPoints); // Keep only most recent points
+        }
+        
+        // Load all data with complete refresh
+        async function loadAllData() {
+            try {
+                updateStatus('Loading data...', 'loading');
+                
+                const [person1Raw, person2Raw] = await Promise.all([
+                    loadPersonData(CONFIG.person1DataUrl),
+                    loadPersonData(CONFIG.person2DataUrl)
+                ]);
+                
+                person1Data = parseLocationData(person1Raw, 1);
+                person2Data = parseLocationData(person2Raw, 2);
+                allData = [...person1Data, ...person2Data].sort((a, b) => a.timestamp - b.timestamp);
+                
+                lastUpdate = new Date();
+                updateStatus(`Last updated: ${lastUpdate.toLocaleTimeString()}`, 'success');
+                
+                // Reset all UI state for complete refresh
+                currentTimeFilter = 1.0;
+                document.getElementById('timeSlider').value = 100;
+                
+                // Stop any running animation
+                if (animationRunning) {
+                    animationRunning = false;
+                    document.getElementById('animateBtn').textContent = 'Play Animation';
+                }
+                
+                // Update UI completely
+                initializeTimeDisplay();
+                updateMap();
+                setTimeout(fitToBounds, 100);
+                
+            } catch (error) {
+                updateStatus(`Error loading data: ${error.message}`, 'error');
+                console.error('Data loading failed:', error);
+            }
+        }
+        
+        // Update status indicator
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusIndicator');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status-${type}`;
+            }
+        }
+        
+        // Auto-refresh functionality
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            
+            if (CONFIG.autoRefresh && CONFIG.refreshInterval > 0) {
+                refreshTimer = setInterval(async () => {
+                    await loadAllData();
+                }, CONFIG.refreshInterval);
+                
+                console.log(`Auto-refresh enabled: ${CONFIG.refreshInterval / 1000}s interval`);
+            }
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+        }
+        
+        // Manual refresh
+        async function manualRefresh() {
+            const btn = document.getElementById('refreshBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Refreshing...';
+            }
+            
+            try {
+                await loadAllData();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Refresh Data';
+                }
+            }
+        }
+        
+        // Map setup - adjusted for larger coverage area
+        const map = L.map('map').setView([48.15, -122.175], 14);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Colors and styling
+        const colors = {
+            person1: '#e53e3e',
+            person2: '#3182ce',
+            distance: '#38a169'
+        };
+        
+        // Map layers
+        let person1Markers = L.layerGroup().addTo(map);
+        let person2Markers = L.layerGroup().addTo(map);
+        let person1Path = null;
+        let person2Path = null;
+        let distanceLine = null;
+        let animationRunning = false;
+        
+        // State
+        let showPerson1 = true;
+        let showPerson2 = true;
+        let showPaths = true;
+        let currentTimeFilter = 1.0;
+        
+        // Add legend
+        const legend = L.control({position: 'topright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <div class="legend-title">Legend</div>
+                <div class="legend-item">
+                    <div class="legend-marker" style="background-color: ${colors.person1}; border: 2px solid white;"></div>
+                    <span>Person 1</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker" style="background-color: ${colors.person2}; border: 2px solid white;"></div>
+                    <span>Person 2</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${colors.person1};"></div>
+                    <span>Person 1 Path</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${colors.person2};"></div>
+                    <span>Person 2 Path</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${colors.distance}; border: 2px dashed #666;"></div>
+                    <span>Distance Line</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // Calculate distance between two points (returns distance in feet)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            const meters = R * c;
+            return meters * 3.28084; // Convert meters to feet
+        }
+        
+        // Format distance to always show miles
+        function formatDistance(feet) {
+            if (!feet || feet === Infinity) return '--';
+            const miles = feet / 5280;
+            return `${miles.toFixed(2)} mi`;
+        }
+        
+        // Get filtered data based on time slider
+        function getFilteredData() {
+            const maxTime = allData.length > 0 ? Math.max(...allData.map(p => p.timestamp)) : 0;
+            const minTime = allData.length > 0 ? Math.min(...allData.map(p => p.timestamp)) : 0;
+            const cutoffTime = minTime + (maxTime - minTime) * currentTimeFilter;
+            
+            return {
+                person1: person1Data.filter(p => p.timestamp <= cutoffTime),
+                person2: person2Data.filter(p => p.timestamp <= cutoffTime)
+            };
+        }
+        
+        // Create marker with custom styling
+        function createMarker(point, isLatest = false) {
+            const size = isLatest ? 16 : 10;
+            const color = point.personId === 1 ? colors.person1 : colors.person2;
+            const opacity = Math.max(0.3, 1 - (point.accuracy / 50)); // Fade based on accuracy
+            
+            const icon = L.divIcon({
+                html: `<div style="
+                    background: ${color}; 
+                    width: ${size}px; 
+                    height: ${size}px; 
+                    border-radius: 50%; 
+                    border: 2px solid white; 
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    opacity: ${opacity};
+                    ${isLatest ? 'animation: pulse 2s infinite;' : ''}
+                "></div>
+                <style>
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.2); }
+                    100% { transform: scale(1); }
+                }
+                </style>`,
+                iconSize: [size, size],
+                className: 'custom-marker'
+            });
+            
+            const marker = L.marker([point.lat, point.lon], { icon });
+            
+            marker.bindPopup(`
+                <div style="font-size: 12px;">
+                    <b>Person ${point.personId}</b><br>
+                    <b>Time:</b> ${point.time.toLocaleString()}<br>
+                    <b>Battery:</b> ${point.battery}%<br>
+                    <b>Altitude:</b> ${point.altitude}m<br>
+                    <b>Accuracy:</b> ±${point.accuracy}m<br>
+                    <b>Coords:</b> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}
+                </div>
+            `);
+            
+            return marker;
+        }
+        
+        // Update map display
+        function updateMap() {
+            const filtered = getFilteredData();
+            
+            // Clear existing markers
+            person1Markers.clearLayers();
+            person2Markers.clearLayers();
+            
+            // Add Person 1 markers
+            if (showPerson1 && filtered.person1.length > 0) {
+                filtered.person1.forEach((point, index) => {
+                    const isLatest = index === filtered.person1.length - 1;
+                    const marker = createMarker(point, isLatest);
+                    // person1Markers.addLayer(marker); // Points removed as requested
+                });
+            }
+            
+            // Add Person 2 markers
+            if (showPerson2 && filtered.person2.length > 0) {
+                filtered.person2.forEach((point, index) => {
+                    const isLatest = index === filtered.person2.length - 1;
+                    const marker = createMarker(point, isLatest);
+                    // person2Markers.addLayer(marker); // Points removed as requested
+                });
+            }
+            
+            // Update paths
+            updatePaths(filtered);
+            
+            // Update distance line and stats
+            updateDistanceAndStats(filtered);
+        }
+        
+        // Update paths
+        function updatePaths(filtered) {
+            // Remove existing paths
+            if (person1Path) map.removeLayer(person1Path);
+            if (person2Path) map.removeLayer(person2Path);
+            
+            if (showPaths) {
+                // Person 1 path
+                if (showPerson1 && filtered.person1.length > 1) {
+                    const coords = filtered.person1.map(p => [p.lat, p.lon]);
+                    person1Path = L.polyline(coords, {
+                        color: colors.person1,
+                        weight: 3,
+                        opacity: 0.7
+                    }).addTo(map);
+                }
+                
+                // Person 2 path
+                if (showPerson2 && filtered.person2.length > 1) {
+                    const coords = filtered.person2.map(p => [p.lat, p.lon]);
+                    person2Path = L.polyline(coords, {
+                        color: colors.person2,
+                        weight: 3,
+                        opacity: 0.7
+                    }).addTo(map);
+                }
+            }
+        }
+        
+        // Update distance line and statistics
+        function updateDistanceAndStats(filtered) {
+            // Remove existing distance line
+            if (distanceLine) map.removeLayer(distanceLine);
+            
+            const p1Latest = filtered.person1[filtered.person1.length - 1];
+            const p2Latest = filtered.person2[filtered.person2.length - 1];
+            
+            if (p1Latest && p2Latest) {
+                // Draw distance line
+                distanceLine = L.polyline([
+                    [p1Latest.lat, p1Latest.lon],
+                    [p2Latest.lat, p2Latest.lon]
+                ], {
+                    color: colors.distance,
+                    weight: 3,
+                    opacity: 0.8,
+                    dashArray: '8, 8'
+                }).addTo(map);
+                
+                // Add midpoint marker showing distance
+                const midLat = (p1Latest.lat + p2Latest.lat) / 2;
+                const midLon = (p1Latest.lon + p2Latest.lon) / 2;
+                
+                const currentDistance = calculateDistance(
+                    p1Latest.lat, p1Latest.lon,
+                    p2Latest.lat, p2Latest.lon
+                );
+                
+                const distanceText = formatDistance(currentDistance);
+                
+                const midpointMarker = L.marker([midLat, midLon], {
+                    icon: L.divIcon({
+                        html: `<div style="
+                            background: ${colors.distance}; 
+                            color: white;
+                            padding: 4px 8px;
+                            border-radius: 12px;
+                            font-size: 11px;
+                            font-weight: bold;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            white-space: nowrap;
+                        ">${distanceText}</div>`,
+                        className: 'distance-label'
+                    })
+                }).addTo(map);
+                
+                // Store for cleanup
+                if (!window.distanceMarkers) window.distanceMarkers = [];
+                window.distanceMarkers.forEach(marker => map.removeLayer(marker));
+                window.distanceMarkers = [midpointMarker];
+                
+                document.getElementById('distanceValue').textContent = distanceText;
+            } else {
+                 document.getElementById('distanceValue').textContent = '--';
+            }
+            
+            // Update statistics
+            updateStatistics(filtered);
+        }
+        
+        // Update statistics
+        function updateStatistics(filtered) {
+            // Calculate path distances
+            let p1Distance = 0, p2Distance = 0;
+            
+            for (let i = 1; i < filtered.person1.length; i++) {
+                const prev = filtered.person1[i-1];
+                const curr = filtered.person1[i];
+                p1Distance += calculateDistance(prev.lat, prev.lon, curr.lat, curr.lon);
+            }
+            
+            for (let i = 1; i < filtered.person2.length; i++) {
+                const prev = filtered.person2[i-1];
+                const curr = filtered.person2[i];
+                p2Distance += calculateDistance(prev.lat, prev.lon, curr.lat, curr.lon);
+            }
+            
+            document.getElementById('person1Distance').textContent = formatDistance(p1Distance);
+            document.getElementById('person2Distance').textContent = formatDistance(p2Distance);
+            
+            // Calculate min/max distances between people
+            let minDist = Infinity, maxDist = 0;
+            
+            if (filtered.person1.length > 0 && filtered.person2.length > 0) {
+                filtered.person1.forEach(p1 => {
+                    filtered.person2.forEach(p2 => {
+                        const dist = calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+                        minDist = Math.min(minDist, dist);
+                        maxDist = Math.max(maxDist, dist);
+                    });
+                });
+            }
+            
+            document.getElementById('minDistance').textContent = formatDistance(minDist);
+            document.getElementById('maxDistance').textContent = formatDistance(maxDist);
+            
+            // Calculate distance to Austin for latest point of each person
+            const p1Latest = filtered.person1[filtered.person1.length - 1];
+            const p2Latest = filtered.person2[filtered.person2.length - 1];
+
+            if (p1Latest) {
+                const distToAustin = calculateDistance(p1Latest.lat, p1Latest.lon, AUSTIN_LAT, AUSTIN_LON);
+                document.getElementById('person1AustinDistance').textContent = formatDistance(distToAustin);
+            } else {
+                document.getElementById('person1AustinDistance').textContent = '--';
+            }
+
+            if (p2Latest) {
+                const distToAustin = calculateDistance(p2Latest.lat, p2Latest.lon, AUSTIN_LAT, AUSTIN_LON);
+                document.getElementById('person2AustinDistance').textContent = formatDistance(distToAustin);
+            } else {
+                document.getElementById('person2AustinDistance').textContent = '--';
+            }
+        }
+        
+        // Toggle person visibility
+        function togglePerson(personId) {
+            const btn = document.querySelector(`.person${personId}-btn`);
+            
+            if (personId === 1) {
+                showPerson1 = !showPerson1;
+                btn.classList.toggle('active', showPerson1);
+                if (showPerson1) {
+                    map.addLayer(person1Markers);
+                } else {
+                    map.removeLayer(person1Markers);
+                }
+            } else {
+                showPerson2 = !showPerson2;
+                btn.classList.toggle('active', showPerson2);
+                if (showPerson2) {
+                    map.addLayer(person2Markers);
+                } else {
+                    map.removeLayer(person2Markers);
+                }
+            }
+            
+            updateMap();
+        }
+        
+        // Toggle paths
+        function togglePaths() {
+            showPaths = !showPaths;
+            updateMap();
+        }
+        
+        // Fit to bounds
+        function fitToBounds() {
+            const allPoints = [];
+            if(showPerson1) allPoints.push(...person1Data);
+            if(showPerson2) allPoints.push(...person2Data);
+
+            if (allPoints.length > 0) {
+                const group = L.featureGroup(allPoints.map(p => 
+                    L.marker([p.lat, p.lon])
+                ));
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+        
+        // Animation toggle
+        function toggleAnimation() {
+            const btn = document.getElementById('animateBtn');
+            
+            if (animationRunning) {
+                animationRunning = false;
+                btn.textContent = 'Play Animation';
+                currentTimeFilter = 1.0;
+                document.getElementById('timeSlider').value = 100;
+                updateMap();
+            } else {
+                animationRunning = true;
+                btn.textContent = 'Stop Animation';
+                animateTimeProgress();
+            }
+        }
+        
+        // Animate time progress
+        function animateTimeProgress() {
+            if (!animationRunning) return;
+            
+            let progress = 0;
+            const duration = 10000; // 10 seconds
+            const steps = 100;
+            const stepTime = duration / steps;
+            
+            function step() {
+                if (!animationRunning) return;
+                
+                progress += 1/steps;
+                currentTimeFilter = progress;
+                document.getElementById('timeSlider').value = progress * 100;
+                updateMap();
+                
+                if (progress < 1) {
+                    setTimeout(step, stepTime);
+                } else {
+                    animationRunning = false;
+                    document.getElementById('animateBtn').textContent = 'Play Animation';
+                }
+            }
+            
+            currentTimeFilter = 0;
+            step();
+        }
+        
+        // Time slider handler
+        document.getElementById('timeSlider').addEventListener('input', function(e) {
+            currentTimeFilter = e.target.value / 100;
+            updateMap();
+        });
+        
+        // Initialize time display
+        function initializeTimeDisplay() {
+            if (allData.length === 0) {
+                document.getElementById('startTime').textContent = '--';
+                document.getElementById('endTime').textContent = '--';
+                return;
+            }
+            const minTime = Math.min(...allData.map(p => p.timestamp));
+            const maxTime = Math.max(...allData.map(p => p.timestamp));
+            
+            document.getElementById('startTime').textContent = 
+                new Date(minTime * 1000).toLocaleTimeString();
+            document.getElementById('endTime').textContent = 
+                new Date(maxTime * 1000).toLocaleTimeString();
+        }
+        
+        // Toggle auto-refresh
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('autoRefreshBtn');
+            const text = document.getElementById('autoRefreshText');
+            
+            if (CONFIG.autoRefresh) {
+                CONFIG.autoRefresh = false;
+                stopAutoRefresh();
+                text.textContent = 'Start Auto Refresh';
+                btn.style.background = '#6c757d';
+            } else {
+                CONFIG.autoRefresh = true;
+                startAutoRefresh();
+                text.textContent = 'Stop Auto Refresh';
+                btn.style.background = '';
+            }
+        }
+        
+        // Initialize everything on page load
+        async function initialize() {
+            try {
+                // Load initial data
+                await loadAllData();
+                
+                // Start auto-refresh if enabled
+                startAutoRefresh();
+                
+                // Update config display
+                document.querySelector('.config-info').innerHTML = `
+                    Refresh: ${Math.floor(CONFIG.refreshInterval/1000)}s | 
+                    Max Points: ${CONFIG.maxPoints} | 
+                    Auto: ${CONFIG.autoRefresh ? 'ON' : 'OFF'}
+                `;
+                
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                updateStatus('Failed to initialize application', 'error');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>

@@ -63,6 +63,18 @@
       collector-image-latest = mkImage pkgs "latest";
       collector-image-gitrev = mkImage pkgs gitRev;
       default = self.packages.${pkgs.system}.collector-image-gitrev;
+      deployIndex = pkgs.writeShellApplication {
+        name = "deploy-index";
+        runtimeInputs = [
+          pkgs.s5cmd
+        ];
+        text = ''
+          export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY"
+          export AWS_SECRET_ACCESS_KEY="$R2_SECRET_KEY"
+          export AWS_ENDPOINT_URL="$R2_ENDPOINT"
+          s5cmd --endpoint-url="$AWS_ENDPOINT_URL" cp index.html "s3://$R2_BUCKET/index.html"
+        '';
+      };
     });
 
     apps = forAllPkgs (pkgs: {

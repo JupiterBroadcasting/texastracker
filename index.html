@@ -365,6 +365,41 @@
         white-space: nowrap;
       }
     </style>
+    <style>
+      .geohash-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .geohash-link {
+        color: #764ba2;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .geohash-link:hover {
+        text-decoration: underline;
+      }
+
+      .copy-btn {
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #bbdefb;
+        padding: 2px 6px;
+        font-size: 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        min-height: auto;
+        line-height: 1;
+      }
+
+      .copy-btn:hover {
+        background: #bbdefb;
+        transform: none;
+        box-shadow: none;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -496,7 +531,9 @@
             </div>
             <div class="stat-item">
               <span class="label">Geohash</span>
-              <span class="value" id="person1Geohash">--</span>
+              <div id="person1GeohashContainer" class="geohash-container">
+                <span class="value">--</span>
+              </div>
             </div>
             <div class="stat-item">
               <span class="label">Total Path Distance</span>
@@ -515,7 +552,9 @@
             </div>
             <div class="stat-item">
               <span class="label">Geohash</span>
-              <span class="value" id="person2Geohash">--</span>
+              <div id="person2GeohashContainer" class="geohash-container">
+                <span class="value">--</span>
+              </div>
             </div>
             <div class="stat-item">
               <span class="label">Total Path Distance</span>
@@ -816,28 +855,28 @@
       legend.onAdd = function (map) {
         const div = L.DomUtil.create("div", "legend");
         div.innerHTML = `
-                <div class="legend-title">Legend</div>
-                <div class="legend-item">
-                    <div class="legend-marker" style="background-color: ${colors.person1}; border: 2px solid white;"></div>
-                    <span>Person 1</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-marker" style="background-color: ${colors.person2}; border: 2px solid white;"></div>
-                    <span>Person 2</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors.person1};"></div>
-                    <span>Person 1 Path</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors.person2};"></div>
-                    <span>Person 2 Path</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${colors.distance}; border: 2px dashed #666;"></div>
-                    <span>Distance Line</span>
-                </div>
-            `;
+                      <div class="legend-title">Legend</div>
+                      <div class="legend-item">
+                          <div class="legend-marker" style="background-color: ${colors.person1}; border: 2px solid white;"></div>
+                          <span>Person 1</span>
+                      </div>
+                      <div class="legend-item">
+                          <div class="legend-marker" style="background-color: ${colors.person2}; border: 2px solid white;"></div>
+                          <span>Person 2</span>
+                      </div>
+                      <div class="legend-item">
+                          <div class="legend-color" style="background-color: ${colors.person1};"></div>
+                          <span>Person 1 Path</span>
+                      </div>
+                      <div class="legend-item">
+                          <div class="legend-color" style="background-color: ${colors.person2};"></div>
+                          <span>Person 2 Path</span>
+                      </div>
+                      <div class="legend-item">
+                          <div class="legend-color" style="background-color: ${colors.distance}; border: 2px dashed #666;"></div>
+                          <span>Distance Line</span>
+                      </div>
+                  `;
         return div;
       };
       legend.addTo(map);
@@ -903,22 +942,22 @@
 
         const icon = L.divIcon({
           html: `<div style="
-                    background: ${color}; 
-                    width: ${size}px; 
-                    height: ${size}px; 
-                    border-radius: 50%; 
-                    border: 2px solid white; 
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    opacity: ${finalOpacity};
-                    ${isLatest ? "animation: pulse 2s infinite;" : ""}
-                "></div>
-                <style>
-                @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.2); }
-                    100% { transform: scale(1); }
-                }
-                </style>`,
+                          background: ${color};
+                          width: ${size}px;
+                          height: ${size}px;
+                          border-radius: 50%;
+                          border: 2px solid white;
+                          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                          opacity: ${finalOpacity};
+                          ${isLatest ? "animation: pulse 2s infinite;" : ""}
+                      "></div>
+                      <style>
+                      @keyframes pulse {
+                          0% { transform: scale(1); }
+                          50% { transform: scale(1.2); }
+                          100% { transform: scale(1); }
+                      }
+                      </style>`,
           iconSize: [size, size],
           className: "custom-marker",
         });
@@ -926,15 +965,15 @@
         const marker = L.marker([point.lat, point.lon], { icon });
 
         marker.bindPopup(`
-                <div style="font-size: 12px;">
-                    <b>Person ${point.personId}</b><br>
-                    <b>Time:</b> ${point.time.toLocaleString()}<br>
-                    <b>Battery:</b> ${point.battery || "N/A"}%<br>
-                    <b>Altitude:</b> ${point.altitude || "N/A"}m<br>
-                    <b>Accuracy:</b> ±${point.accuracy || "N/A"}m<br>
-                    <b>Coords:</b> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}
-                </div>
-            `);
+                      <div style="font-size: 12px;">
+                          <b>Person ${point.personId}</b><br>
+                          <b>Time:</b> ${point.time.toLocaleString()}<br>
+                          <b>Battery:</b> ${point.battery || "N/A"}%<br>
+                          <b>Altitude:</b> ${point.altitude || "N/A"}m<br>
+                          <b>Accuracy:</b> ±${point.accuracy || "N/A"}m<br>
+                          <b>Coords:</b> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}
+                      </div>
+                  `);
 
         return marker;
       }
@@ -1054,15 +1093,15 @@
           const midpointMarker = L.marker([midLat, midLon], {
             icon: L.divIcon({
               html: `<div style="
-                            background: ${colors.distance}; 
-                            color: white;
-                            padding: 4px 8px;
-                            border-radius: 12px;
-                            font-size: 11px;
-                            font-weight: bold;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                            white-space: nowrap;
-                        ">${distanceText}</div>`,
+                                  background: ${colors.distance};
+                                  color: white;
+                                  padding: 4px 8px;
+                                  border-radius: 12px;
+                                  font-size: 11px;
+                                  font-weight: bold;
+                                  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                                  white-space: nowrap;
+                              ">${distanceText}</div>`,
               className: "distance-label",
             }),
           }).addTo(map);
@@ -1150,11 +1189,11 @@
 
           // Calculate geohash at province level (precision 4)
           const geohash = window.geohash(p1Latest.lat, p1Latest.lon, 4);
-          document.getElementById("person1Geohash").textContent = geohash;
+          updateGeohashDisplay("person1GeohashContainer", geohash);
         } else {
           document.getElementById("person1AustinDistance").textContent = "--";
           document.getElementById("person1LastUpdate").textContent = "--";
-          document.getElementById("person1Geohash").textContent = "--";
+          updateGeohashDisplay("person1GeohashContainer", "--");
         }
 
         if (p2Latest) {
@@ -1171,12 +1210,51 @@
 
           // Calculate geohash at province level (precision 4)
           const geohash = window.geohash(p2Latest.lat, p2Latest.lon, 4);
-          document.getElementById("person2Geohash").textContent = geohash;
+          updateGeohashDisplay("person2GeohashContainer", geohash);
         } else {
           document.getElementById("person2AustinDistance").textContent = "--";
           document.getElementById("person2LastUpdate").textContent = "--";
-          document.getElementById("person2Geohash").textContent = "--";
+          updateGeohashDisplay("person2GeohashContainer", "--");
         }
+      }
+
+      // Update geohash display with link and copy button
+      function updateGeohashDisplay(elementId, geohash) {
+        const container = document.getElementById(elementId);
+        if (!container) return; // Safety check
+
+        if (geohash === "--") {
+          container.innerHTML = '<span class="value">--</span>';
+          return;
+        }
+
+        container.innerHTML = `
+                <a href="https://geohash.jorren.nl/#${geohash}" target="_blank" class="geohash-link value">${geohash}</a>
+                <button class="copy-btn" onclick="copyGeohash('${geohash}')" title="Copy geohash">📋</button>
+              `;
+      }
+
+      // Copy geohash to clipboard
+      function copyGeohash(geohash) {
+        navigator.clipboard
+          .writeText(geohash)
+          .then(() => {
+            // Show temporary feedback
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = "✓";
+            btn.style.background = "#e8f5e8";
+            btn.style.color = "#2e7d32";
+
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.background = "";
+              btn.style.color = "";
+            }, 1000);
+          })
+          .catch((err) => {
+            console.error("Failed to copy geohash:", err);
+          });
       }
 
       // Toggle person visibility
@@ -1274,6 +1352,7 @@
           progress += 1 / steps;
           currentTimeFilter = progress;
           document.getElementById("timeSlider").value = progress * 100;
+          updateCurrentTimeDisplay();
           updateMap();
 
           if (progress < 1) {
@@ -1294,8 +1373,22 @@
         .getElementById("timeSlider")
         .addEventListener("input", function (e) {
           currentTimeFilter = e.target.value / 100;
+          updateCurrentTimeDisplay();
           updateMap();
         });
+
+      // Update the current time display based on slider position
+      function updateCurrentTimeDisplay() {
+        if (filteredData.length === 0) return;
+
+        const minTime = Math.min(...filteredData.map((p) => p.timestamp));
+        const maxTime = Math.max(...filteredData.map((p) => p.timestamp));
+        const currentTime = minTime + (maxTime - minTime) * currentTimeFilter;
+
+        document.getElementById("endTime").textContent = new Date(
+          currentTime * 1000,
+        ).toLocaleTimeString();
+      }
 
       // Lookback selector handler
       document
@@ -1322,9 +1415,7 @@
         document.getElementById("startTime").textContent = new Date(
           minTime * 1000,
         ).toLocaleTimeString();
-        document.getElementById("endTime").textContent = new Date(
-          maxTime * 1000,
-        ).toLocaleTimeString();
+        updateCurrentTimeDisplay();
       }
 
       // Toggle auto-refresh
@@ -1356,9 +1447,9 @@
 
           // Update config display
           document.querySelector(".config-info").innerHTML = `
-                    Refresh: ${Math.floor(CONFIG.refreshInterval / 1000)}s | 
-                    Auto: ${CONFIG.autoRefresh ? "ON" : "OFF"}
-                `;
+                          Refresh: ${Math.floor(CONFIG.refreshInterval / 1000)}s |
+                          Auto: ${CONFIG.autoRefresh ? "ON" : "OFF"}
+                      `;
         } catch (error) {
           console.error("Initialization failed:", error);
           updateStatus("Failed to initialize application", "error");

@@ -423,7 +423,7 @@
       <div class="controls">
         <div class="stat-box distance-box" id="currentDistance">
           <div class="stat-value" id="distanceValue">--</div>
-          <div class="stat-label">Current Distance Between People</div>
+          <div class="stat-label">Current Distance Between Bigfoot & Moose</div>
         </div>
 
         <div class="time-controls">
@@ -490,13 +490,13 @@
                 class="person-btn person1-btn active"
                 onclick="togglePerson(1)"
               >
-                👤 Person 1
+                👤 Bigfoot
               </div>
               <div
                 class="person-btn person2-btn active"
                 onclick="togglePerson(2)"
               >
-                👤 Person 2
+                👤 Moose
               </div>
             </div>
           </div>
@@ -524,7 +524,7 @@
 
         <div class="person-stats-grid">
           <div class="person-card person1-card">
-            <h4>👤 Person 1 Stats</h4>
+            <h4>👤 Bigfoot Stats</h4>
             <div class="stat-item">
               <span class="label">Last Update</span>
               <span class="value" id="person1LastUpdate">--</span>
@@ -545,7 +545,7 @@
             </div>
           </div>
           <div class="person-card person2-card">
-            <h4>👤 Person 2 Stats</h4>
+            <h4>👤 Moose Stats</h4>
             <div class="stat-item">
               <span class="label">Last Update</span>
               <span class="value" id="person2LastUpdate">--</span>
@@ -858,19 +858,19 @@
                       <div class="legend-title">Legend</div>
                       <div class="legend-item">
                           <div class="legend-marker" style="background-color: ${colors.person1}; border: 2px solid white;"></div>
-                          <span>Person 1</span>
+                          <span>Bigfoot</span>
                       </div>
                       <div class="legend-item">
                           <div class="legend-marker" style="background-color: ${colors.person2}; border: 2px solid white;"></div>
-                          <span>Person 2</span>
+                          <span>Moose</span>
                       </div>
                       <div class="legend-item">
                           <div class="legend-color" style="background-color: ${colors.person1};"></div>
-                          <span>Person 1 Path</span>
+                          <span>Bigfoot Path</span>
                       </div>
                       <div class="legend-item">
                           <div class="legend-color" style="background-color: ${colors.person2};"></div>
-                          <span>Person 2 Path</span>
+                          <span>Moose Path</span>
                       </div>
                       <div class="legend-item">
                           <div class="legend-color" style="background-color: ${colors.distance}; border: 2px dashed #666;"></div>
@@ -966,7 +966,7 @@
 
         marker.bindPopup(`
                       <div style="font-size: 12px;">
-                          <b>Person ${point.personId}</b><br>
+                          <b>${point.personId === 1 ? "Bigfoot" : "Moose"}</b><br>
                           <b>Time:</b> ${point.time.toLocaleString()}<br>
                           <b>Battery:</b> ${point.battery || "N/A"}%<br>
                           <b>Altitude:</b> ${point.altitude || "N/A"}m<br>

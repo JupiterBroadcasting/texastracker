@@ -149,6 +149,7 @@
           pkgs.nodePackages.prettier
           pkgs.dotenvx
           pkgs.s5cmd
+          pkgs.python3
         ];
         shellHook = ''
           echo "Texas Tracker dev environment"

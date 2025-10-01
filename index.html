@@ -719,13 +719,39 @@
         try {
           updateStatus("Loading data...", "loading");
 
-          const [person1Raw, person2Raw] = await Promise.all([
+          // Use Promise.allSettled to allow one fetch to fail without stopping the other.
+          const results = await Promise.allSettled([
             loadPersonData(CONFIG.person1DataUrl),
             loadPersonData(CONFIG.person2DataUrl),
           ]);
 
-          person1Data = parseLocationData(person1Raw, 1);
-          person2Data = parseLocationData(person2Raw, 2);
+          // Process person 1 data if fulfilled, otherwise set to empty array
+          if (results[0].status === "fulfilled") {
+            person1Data = parseLocationData(results[0].value, 1);
+          } else {
+            console.error(
+              `Failed to load data for person 1 from ${CONFIG.person1DataUrl}:`,
+              results[0].reason,
+            );
+            person1Data = []; // Gracefully handle failure
+          }
+
+          // Process person 2 data if fulfilled, otherwise set to empty array
+          if (results[1].status === "fulfilled") {
+            person2Data = parseLocationData(results[1].value, 2);
+          } else {
+            console.error(
+              `Failed to load data for person 2 from ${CONFIG.person2DataUrl}:`,
+              results[1].reason,
+            );
+            person2Data = []; // Gracefully handle failure
+          }
+
+          // If both data sources fail, throw an error to be caught below.
+          if (person1Data.length === 0 && person2Data.length === 0) {
+            throw new Error("All data sources failed to load.");
+          }
+
           allData = [...person1Data, ...person2Data].sort(
             (a, b) => a.timestamp - b.timestamp,
           );
@@ -821,7 +847,7 @@
       }
 
       // Map setup - adjusted for larger coverage area
-      const map = L.map("map").setView([48.15, -122.175], 14);
+      const map = L.map("map").setView([AUSTIN_LAT, AUSTIN_LON], 14);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",

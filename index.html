@@ -543,6 +543,18 @@
               <span class="label">Distance to Austin</span>
               <span class="value" id="person1AustinDistance">--</span>
             </div>
+            <div class="stat-item">
+              <span class="label">Point Count</span>
+              <span class="value" id="person1PointCount">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Avg. Velocity (Moving)</span>
+              <span class="value" id="person1AvgVelocity">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Total Driving Time</span>
+              <span class="value" id="person1DrivingTime">--</span>
+            </div>
           </div>
           <div class="person-card person2-card">
             <h4>👤 Moose Stats</h4>
@@ -563,6 +575,18 @@
             <div class="stat-item">
               <span class="label">Distance to Austin</span>
               <span class="value" id="person2AustinDistance">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Point Count</span>
+              <span class="value" id="person2PointCount">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Avg. Velocity (Moving)</span>
+              <span class="value" id="person2AvgVelocity">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Total Driving Time</span>
+              <span class="value" id="person2DrivingTime">--</span>
             </div>
           </div>
         </div>
@@ -907,6 +931,67 @@
       };
       legend.addTo(map);
 
+      // --- New Stats Calculation Functions (from stats.py) ---
+      function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371000; // Earth's radius in meters
+        const phi1 = (lat1 * Math.PI) / 180;
+        const phi2 = (lat2 * Math.PI) / 180;
+        const dphi = ((lat2 - lat1) * Math.PI) / 180;
+        const dlambda = ((lon2 - lon1) * Math.PI) / 180;
+
+        const a =
+          Math.sin(dphi / 2) ** 2 +
+          Math.cos(phi1) * Math.cos(phi2) * Math.sin(dlambda / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+      }
+
+      function calculateVelocities(points) {
+        const velocities = [];
+        for (let i = 1; i < points.length; i++) {
+          const p1 = points[i - 1];
+          const p2 = points[i];
+
+          const timeDelta = p2.timestamp - p1.timestamp;
+          if (timeDelta > 0) {
+            const distance = haversineDistanceMeters(
+              p1.lat,
+              p1.lon,
+              p2.lat,
+              p2.lon,
+            );
+            const velocity = distance / timeDelta; // m/s
+            velocities.push({
+              timestamp: p2.timestamp,
+              velocity_ms: velocity,
+              time_delta_s: timeDelta,
+            });
+          }
+        }
+        return velocities;
+      }
+
+      function calculateAverageVelocity(velocities, minVelocity = 0.5) {
+        const moving = velocities.filter((v) => v.velocity_ms >= minVelocity);
+        if (moving.length === 0) return 0.0;
+
+        const totalDistance = moving.reduce(
+          (sum, v) => sum + v.velocity_ms * v.time_delta_s,
+          0,
+        );
+        const totalTime = moving.reduce((sum, v) => sum + v.time_delta_s, 0);
+
+        return totalTime > 0 ? totalDistance / totalTime : 0.0; // m/s
+      }
+
+      function calculateTotalDrivingTime(velocities, minVelocity = 0.5) {
+        return velocities
+          .filter((v) => v.velocity_ms >= minVelocity)
+          .reduce((sum, v) => sum + v.time_delta_s, 0); // seconds
+      }
+      // --- End New Stats Functions ---
+
       // Calculate distance between two points (returns distance in feet)
       function calculateDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3; // Earth's radius in meters
@@ -954,12 +1039,11 @@
         };
       }
 
-      // Create marker with custom styling - fixed opacity issue
-      function createMarker(point, isLatest = false) {
+      // Create marker with custom styling and velocity pop-up
+      function createMarker(point, isLatest = false, personPoints = []) {
         const size = isLatest ? 16 : 10;
         const color = point.personId === 1 ? colors.person1 : colors.person2;
 
-        // Fixed opacity calculation - ensure consistent visibility
         const baseOpacity = isLatest ? 1.0 : 0.8;
         const accuracyOpacity = point.accuracy
           ? Math.max(0.5, 1 - point.accuracy / 100)
@@ -990,14 +1074,59 @@
 
         const marker = L.marker([point.lat, point.lon], { icon });
 
+        // --- Popup Content Calculation ---
+        let velocityInfo = "<b>Velocity:</b> N/A (first point)<br>";
+        const pointIndex = personPoints.findIndex(
+          (p) => p.timestamp === point.timestamp,
+        );
+
+        if (pointIndex > 0) {
+          const prevPoint = personPoints[pointIndex - 1];
+          const timeDelta = point.timestamp - prevPoint.timestamp;
+
+          if (timeDelta > 0) {
+            const distanceMeters = haversineDistanceMeters(
+              prevPoint.lat,
+              prevPoint.lon,
+              point.lat,
+              point.lon,
+            );
+            const currentVelocityMs = distanceMeters / timeDelta;
+            const currentVelocityMph = (currentVelocityMs * 2.23694).toFixed(1);
+            const currentVelocityKmh = (currentVelocityMs * 3.6).toFixed(1);
+
+            // Average velocity of last 5 points
+            const lookback = 5;
+            const startIdx = Math.max(0, pointIndex - lookback + 1);
+            const recentPoints = personPoints.slice(startIdx, pointIndex + 1);
+            const recentVelocities = calculateVelocities(recentPoints);
+            const avgRecentVelocityMs = calculateAverageVelocity(
+              recentVelocities,
+              0,
+            ); // No min speed for this calc
+            const avgRecentVelocityMph = (
+              avgRecentVelocityMs * 2.23694
+            ).toFixed(1);
+            const avgRecentVelocityKmh = (avgRecentVelocityMs * 3.6).toFixed(1);
+
+            velocityInfo = `
+	    <!--<b>Velocity:</b> ${currentVelocityMph} mph (${currentVelocityKmh} km/h)<br>-->
+                <b>Avg. Velocity (last ${recentPoints.length}):</b> ${avgRecentVelocityMph} mph (${avgRecentVelocityKmh} km/h)<br>
+            `;
+          }
+        }
+
+        const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${point.lat},${point.lon}`;
+
         marker.bindPopup(`
                       <div style="font-size: 12px;">
                           <b>${point.personId === 1 ? "Bigfoot" : "Moose"}</b><br>
                           <b>Time:</b> ${point.time.toLocaleString()}<br>
+                          ${velocityInfo}
                           <b>Battery:</b> ${point.battery || "N/A"}%<br>
                           <b>Altitude:</b> ${point.altitude || "N/A"}m<br>
                           <b>Accuracy:</b> ±${point.accuracy || "N/A"}m<br>
-                          <b>Coords:</b> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}
+                          <b>Coords:</b> <a href="${googleMapsLink}" target="_blank">${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}</a>
                       </div>
                   `);
 
@@ -1016,7 +1145,7 @@
         if (showPerson1 && filtered.person1.length > 0) {
           filtered.person1.forEach((point, index) => {
             const isLatest = index === filtered.person1.length - 1;
-            const marker = createMarker(point, isLatest);
+            const marker = createMarker(point, isLatest, filtered.person1);
 
             // Show all points if showPoints is true, or just the latest point
             if (showPoints || isLatest) {
@@ -1029,7 +1158,7 @@
         if (showPerson2 && filtered.person2.length > 0) {
           filtered.person2.forEach((point, index) => {
             const isLatest = index === filtered.person2.length - 1;
-            const marker = createMarker(point, isLatest);
+            const marker = createMarker(point, isLatest, filtered.person2);
 
             // Show all points if showPoints is true, or just the latest point
             if (showPoints || isLatest) {
@@ -1242,6 +1371,35 @@
           document.getElementById("person2LastUpdate").textContent = "--";
           updateGeohashDisplay("person2GeohashContainer", "--");
         }
+
+        // --- Update new stats ---
+        // Person 1 new stats
+        const p1Velocities = calculateVelocities(filtered.person1);
+        const p1AvgVelocity = calculateAverageVelocity(p1Velocities); // m/s
+        const p1DrivingTime = calculateTotalDrivingTime(p1Velocities); // seconds
+
+        document.getElementById("person1PointCount").textContent =
+          filtered.person1.length;
+        document.getElementById("person1AvgVelocity").textContent = `${(
+          p1AvgVelocity * 2.23694
+        ).toFixed(1)} mph (${(p1AvgVelocity * 3.6).toFixed(1)} km/h)`;
+        document.getElementById("person1DrivingTime").textContent = `${(
+          p1DrivingTime / 3600
+        ).toFixed(2)} hours`;
+
+        // Person 2 new stats
+        const p2Velocities = calculateVelocities(filtered.person2);
+        const p2AvgVelocity = calculateAverageVelocity(p2Velocities); // m/s
+        const p2DrivingTime = calculateTotalDrivingTime(p2Velocities); // seconds
+
+        document.getElementById("person2PointCount").textContent =
+          filtered.person2.length;
+        document.getElementById("person2AvgVelocity").textContent = `${(
+          p2AvgVelocity * 2.23694
+        ).toFixed(1)} mph (${(p2AvgVelocity * 3.6).toFixed(1)} km/h)`;
+        document.getElementById("person2DrivingTime").textContent = `${(
+          p2DrivingTime / 3600
+        ).toFixed(2)} hours`;
       }
 
       // Update geohash display with link and copy button
